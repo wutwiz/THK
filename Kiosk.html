@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Room Kiosk</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { background-color: #0b0f19; color: #ffffff; font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; overflow: hidden; display: flex; flex-direction: column; height: 100vh;}
+    .kiosk-header { padding: 30px 50px; background: rgba(255,255,255,0.02); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 30px rgba(0,0,0,0.5);}
+    .room-title { font-size: 48px; font-weight: 700; margin: 0; color: #60a5fa; text-shadow: 0 0 20px rgba(96, 165, 250, 0.5); letter-spacing: 2px;}
+    .clock-container { text-align: right; }
+    .clock-time { font-size: 56px; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums; line-height: 1;}
+    .clock-date { font-size: 20px; color: #9ca3af; margin: 0; text-transform: uppercase;}
+    .main-content { flex: 1; display: flex; padding: 40px 50px; gap: 40px; }
+    .status-panel { flex: 1.5; border-radius: 30px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 40px; transition: 0.5s; position: relative; overflow: hidden;}
+    .status-panel::before { content: ''; position: absolute; top:0;left:0;right:0;bottom:0; opacity: 0.1; background: radial-current; z-index: 0;}
+    .status-icon { font-size: 100px; margin-bottom: 20px; z-index: 1;}
+    .status-text { font-size: 64px; font-weight: 700; margin: 0; z-index: 1; letter-spacing: 2px;}
+    .status-topic { font-size: 28px; margin-top: 20px; color: rgba(255,255,255,0.9); z-index: 1;}
+    .status-user { font-size: 22px; color: #9ca3af; margin-top: 10px; z-index: 1;}
+    .status-time { font-size: 32px; font-weight: 600; margin-top: 30px; background: rgba(0,0,0,0.3); padding: 10px 30px; border-radius: 980px; z-index: 1;}
+    .schedule-panel { flex: 1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 30px; padding: 30px; display: flex; flex-direction: column;}
+    .schedule-title { font-size: 24px; color: #9ca3af; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;}
+    .queue-list { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 15px;}
+    .queue-item { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 16px; border-left: 4px solid #60a5fa; }
+    .q-time { font-size: 22px; font-weight: 600; color: #60a5fa;}
+    .q-topic { font-size: 18px; margin: 5px 0;}
+    .q-user { font-size: 14px; color: #9ca3af;}
+    .empty-queue { text-align: center; color: #6b7280; font-size: 20px; margin-top: 50px; font-weight: 300;}
+    .state-free { background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 78, 59, 0.4) 100%); border: 2px solid #10b981; box-shadow: 0 0 50px rgba(16, 185, 129, 0.15);}
+    .state-free .status-icon, .state-free .status-text { color: #34d399; text-shadow: 0 0 20px rgba(52, 211, 153, 0.5);}
+    .state-busy { background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(127, 29, 29, 0.4) 100%); border: 2px solid #ef4444; box-shadow: 0 0 50px rgba(239, 68, 68, 0.15);}
+    .state-busy .status-icon, .state-busy .status-text { color: #f87171; text-shadow: 0 0 20px rgba(248, 113, 113, 0.5);}
+  </style>
+</head>
+<body onload="initKiosk()">
+
+  <div class="kiosk-header">
+    <h1 class="room-title"><i class="fas fa-door-open"></i> <span id="displayRoomName">Loading...</span></h1>
+    <div class="clock-container">
+      <p class="clock-time" id="clockTime">00:00:00</p>
+      <p class="clock-date" id="clockDate">Loading...</p>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="status-panel state-free" id="mainStatusPanel">
+      <i class="fas fa-check-circle status-icon" id="mainIcon"></i>
+      <h2 class="status-text" id="mainStatusText">ห้องว่าง (AVAILABLE)</h2>
+      <p class="status-topic" id="mainTopic">สามารถเข้าใช้งานได้ทันที</p>
+      <p class="status-user" id="mainUser"></p>
+      <div class="status-time" id="mainTime" style="display:none;"></div>
+    </div>
+    <div class="schedule-panel">
+      <h3 class="schedule-title"><i class="fas fa-list-ul"></i> คิวการใช้งานวันนี้</h3>
+      <div class="queue-list" id="queueList">
+        <div class="empty-queue"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดข้อมูล API...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbwgV8PaQflHBcehwKKtIENDGUEFJAhiJ2Mrn1tguag_sQNfjOGj1A2E9zzcPRp_9jKdzA/exec";
+    const urlParams = new URLSearchParams(window.location.search);
+    const ROOM_NAME = urlParams.get('room');
+
+    async function apiCall(action) {
+      try { let res = await fetch(API_URL + "?action=" + action); return await res.json(); } catch(e) { return null; }
+    }
+
+    let todaysBookings = [];
+
+    function initKiosk() {
+      if(!ROOM_NAME) { document.body.innerHTML = "<h1 style='text-align:center; margin-top:20vh; color:red;'>URL ไม่ถูกต้อง (ขาดพารามิเตอร์ ?room=ชื่อห้อง)</h1>"; return; }
+      document.getElementById('displayRoomName').innerText = ROOM_NAME;
+      
+      setInterval(updateClock, 1000); updateClock();
+      fetchData(); setInterval(fetchData, 60000); 
+    }
+
+    function updateClock() {
+      let now = new Date();
+      document.getElementById('clockTime').innerText = now.toLocaleTimeString('th-TH', {hour12: false});
+      document.getElementById('clockDate').innerText = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      updateUI(now); 
+    }
+
+    async function fetchData() {
+      let data = await apiCall('getReservations');
+      if(data) {
+        let todayStr = new Date().toISOString().split('T')[0];
+        todaysBookings = data.filter(d => d.room === ROOM_NAME && d.date === todayStr && d.status === 'approved');
+        todaysBookings.sort((a, b) => a.startTime.localeCompare(b.startTime));
+        updateUI(new Date());
+      }
+    }
+
+    function updateUI(now) {
+      let currentTimeStr = now.toLocaleTimeString('en-GB', {hour12: false}).substring(0,5);
+      let currentBooking = null; let upcomingBookings = [];
+
+      todaysBookings.forEach(b => {
+        if (currentTimeStr >= b.startTime && currentTimeStr < b.endTime) { currentBooking = b; } 
+        else if (b.startTime >= currentTimeStr) { upcomingBookings.push(b); }
+      });
+
+      let panel = document.getElementById('mainStatusPanel'), icon = document.getElementById('mainIcon'), statTxt = document.getElementById('mainStatusText'), topTxt = document.getElementById('mainTopic'), usrTxt = document.getElementById('mainUser'), timeTxt = document.getElementById('mainTime');
+
+      if (currentBooking) {
+        panel.className = "status-panel state-busy"; icon.className = "fas fa-ban status-icon"; statTxt.innerText = "กำลังใช้งาน (IN USE)";
+        topTxt.innerText = "กิจกรรม: " + currentBooking.topic;
+        usrTxt.innerText = "โดย: " + currentBooking.firstName + " " + currentBooking.lastName + " (" + currentBooking.department + ")";
+        timeTxt.style.display = "inline-block"; timeTxt.innerHTML = `<i class="fas fa-clock"></i> ใช้งานจนถึงเวลา ${currentBooking.endTime} น.`;
+      } else {
+        panel.className = "status-panel state-free"; icon.className = "fas fa-check-circle status-icon"; statTxt.innerText = "ห้องว่าง (AVAILABLE)";
+        if(upcomingBookings.length > 0) { topTxt.innerHTML = `คิวต่อไปเริ่มเวลา <b style="color:#60a5fa">${upcomingBookings[0].startTime}</b> น.`; } else { topTxt.innerText = "สามารถเข้าใช้งานได้"; }
+        usrTxt.innerText = ""; timeTxt.style.display = "none";
+      }
+
+      let qHtml = "";
+      if (upcomingBookings.length === 0) { qHtml = `<div class="empty-queue"><i class="fas fa-coffee"></i><br>ไม่มีคิวการใช้งานต่อจากนี้</div>`; } else {
+        upcomingBookings.forEach(u => {
+          qHtml += `<div class="queue-item"><div class="q-time"><i class="fas fa-clock"></i> ${u.startTime} - ${u.endTime}</div><div class="q-topic">${u.topic}</div><div class="q-user"><i class="fas fa-user"></i> ${u.firstName} ${u.lastName}</div></div>`;
+        });
+      }
+      document.getElementById('queueList').innerHTML = qHtml;
+    }
+  </script>
+</body>
+</html>

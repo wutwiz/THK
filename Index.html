@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบจองห้องโรงเรียนธรรมศาสตร์คลองหลวงวิทยาคม</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+  
+  <style>
+    :root { --bg: #f4f6f9; --card-bg: #ffffff; --text: #333333; --text-muted: #6b7280; --blue-main: #1A56DB; --blue-hover: #1e40af; --border: #e5e7eb; }
+    body { font-family: 'Sarabun', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+    .nav-bar { position: fixed; top: 0; width: 100%; height: 60px; background: rgba(255,255,255,0.95); box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; z-index: 1000; padding: 0 40px; box-sizing: border-box; }
+    .nav-brand { font-weight: 600; font-size: 16px; color: var(--blue-main); display: flex; align-items: center; gap: 8px; white-space: nowrap;}
+    @media (min-width: 768px) { .nav-brand { font-size: 20px; } }
+    .btn-admin { background: transparent; border: 1px solid var(--border); padding: 6px 16px; border-radius: 8px; font-family: 'Sarabun'; font-size: 14px; font-weight: 500; cursor: pointer; transition: 0.2s; color: var(--text-muted); white-space: nowrap;}
+    .btn-admin:hover { background: var(--bg); color: var(--blue-main); border-color: var(--blue-main);}
+    .main-container { max-width: 1100px; margin: 100px auto 60px; padding: 0 20px; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    .animate { animation: fadeInUp 0.6s ease forwards; }
+    .header { text-align: center; margin-bottom: 50px; }
+    .header h1 { font-size: 38px; margin: 0; font-weight: 600; color: var(--blue-main);}
+    .header p { font-size: 18px; color: var(--text-muted); margin-top: 8px; }
+    .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 60px; }
+    .card { background: var(--card-bg); border-radius: 16px; overflow: hidden; border: 1px solid var(--border); transition: transform 0.2s, box-shadow 0.2s; position: relative;}
+    .card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(26, 86, 219, 0.1); }
+    .card-img { width: 100%; height: 200px; object-fit: cover; }
+    .card-body { padding: 25px; }
+    .card-title { font-size: 20px; margin: 0 0 8px; font-weight: 600; color: #111827;}
+    .card-desc { font-size: 15px; color: var(--text-muted); margin-bottom: 20px; }
+    .btn-primary { width: 100%; background: var(--blue-main); color: #fff; border: none; padding: 12px; border-radius: 8px; font-family: 'Sarabun'; font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px;}
+    .card.maintenance { opacity: 0.7; filter: grayscale(50%); pointer-events: none; }
+    .badge-maintenance { position: absolute; top: 15px; right: 15px; background: #ef4444; color: white; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; z-index: 10;}
+    #bookingFormView { display: none; }
+    .form-container { background: var(--card-bg); padding: 40px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.03); max-width: 650px; margin: auto; }
+    .form-container h2 { text-align: center; font-size: 26px; margin-top: 0; margin-bottom: 30px; color: var(--blue-main); }
+    .form-group { margin-bottom: 18px; width: 100%; }
+    label { font-size: 15px; font-weight: 500; color: #374151; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;}
+    label i { color: var(--blue-main); opacity: 0.8;}
+    input, select { width: 100%; padding: 12px 16px; background: #f9fafb; border: 1px solid #d1d5db; color: #111827; border-radius: 8px; font-family: 'Sarabun'; font-size: 15px; box-sizing: border-box; transition: 0.2s; }
+    input:focus, select:focus { outline: none; border-color: var(--blue-main); background: #fff; box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.15); }
+    input[readonly] { background: #e5e7eb; color: var(--blue-main); font-weight: 600; cursor: not-allowed;}
+    .form-row { display: flex; gap: 20px; } .form-row > div { flex: 1; }
+    .btn-cancel { width: 100%; background: #f3f4f6; color: #4b5563; border: 1px solid #d1d5db; padding: 12px; border-radius: 8px; font-family: 'Sarabun'; font-size: 16px; cursor: pointer; transition: 0.2s; margin-top: 10px; font-weight: 500;}
+    .schedule-layout { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 40px;}
+    .box-container { flex: 1; min-width: 300px; background: var(--card-bg); padding: 30px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.03); width: 100%; box-sizing: border-box;}
+    .box-container h3 { margin-top: 0; color: var(--blue-main); font-size: 22px; margin-bottom: 20px;}
+    .booking-item { padding: 15px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px;}
+    .booking-item:last-child { border-bottom: none; }
+    .b-time { font-weight: 600; color: var(--blue-main); font-size: 15px;}
+    .fc { font-family: 'Sarabun'; }
+    .fc-event { border-radius: 4px; border: none; font-size: 12px; padding: 2px 4px; color: #fff !important; cursor: pointer;}
+    .fc .fc-toolbar-title { font-size: 1.3em; font-weight: 600; color: #111827;}
+    .fc .fc-button-primary { background: var(--blue-main); border: none; border-radius: 6px; text-transform: capitalize; font-family: 'Sarabun';}
+    @media screen and (max-width: 768px) {
+      .nav-bar { padding: 0 15px; } .nav-brand span { display: none; } .btn-admin { padding: 6px 10px; font-size: 12px; }
+      .main-container { margin-top: 80px; padding: 0 15px; } .header h1 { font-size: 26px; } .header p { font-size: 14px; }
+      .form-container { padding: 20px; } .form-row { flex-direction: column; gap: 0; }
+      .box-container { padding: 15px; } .schedule-layout { flex-direction: column; gap: 15px; }
+      .fc .fc-toolbar { flex-direction: column; gap: 10px; }
+    }
+  </style>
+</head>
+<body onload="initPage()">
+
+  <div class="nav-bar">
+    <div class="nav-brand"><i class="fas fa-school"></i> <span>ระบบจองห้อง ร.ร.ธรรมศาสตร์คลองหลวงฯ</span></div>
+    <button class="btn-admin" onclick="goToAdmin()"><i class="fas fa-cog"></i> ผู้ดูแลระบบ</button>
+  </div>
+
+  <div class="main-container">
+    <div class="header animate">
+      <h1>ตรวจสอบและจองห้องว่าง</h1>
+      <p>กรุณาตรวจสอบตารางการใช้งานก่อนทำรายการจองทุกครั้ง</p>
+    </div>
+
+    <div id="blackoutAlert" style="display:none; background:#fee2e2; color:#b91c1c; padding:15px; border-radius:12px; margin-bottom:20px; text-align:center; border:1px solid #fca5a5; font-weight:500;"></div>
+
+    <div id="roomSelectionView" class="animate">
+      <div id="dynamicRoomsContainer" class="grid-container">
+        <p style="text-align:center; grid-column: 1/-1; color: gray;"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดข้อมูลระบบ...</p>
+      </div>
+    </div>
+
+    <div id="bookingFormView">
+      <div class="form-container">
+        <h2><i class="fas fa-file-signature"></i> แบบฟอร์มการจอง</h2>
+        <div class="form-group"><label><i class="fas fa-door-open"></i> ห้องที่เลือก</label><input type="text" id="room" readonly></div>
+        <div class="form-group"><label><i class="fas fa-bullhorn"></i> หัวข้อ/กิจกรรมที่ใช้ห้อง</label><input type="text" id="topic" required></div>
+        <div class="form-row">
+          <div class="form-group"><label><i class="fas fa-user"></i> ชื่อ</label><input type="text" id="firstName" required></div>
+          <div class="form-group"><label>นามสกุล</label><input type="text" id="lastName" required></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label><i class="fas fa-users"></i> กลุ่มสาระการเรียนรู้/หน่วยงาน</label><input type="text" id="department" placeholder="พิมพ์หน่วยงานหรือกลุ่มสาระ" required></div>
+          <div class="form-group"><label><i class="fas fa-phone"></i> เบอร์ติดต่อ</label><input type="tel" id="phone" required></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label><i class="fas fa-calendar-day"></i> วันที่จอง (เริ่ม)</label><input type="date" id="date" onchange="checkBlackoutDate()" required></div>
+          <div class="form-group">
+            <label><i class="fas fa-redo-alt"></i> รูปแบบการจอง</label>
+            <select id="recurWeeks">
+              <option value="1">จองครั้งเดียว</option>
+              <option value="2">จองต่อเนื่อง 2 สัปดาห์</option>
+              <option value="4">จองต่อเนื่อง 1 เดือน (4 สัปดาห์)</option>
+              <option value="10">จองต่อเนื่องครึ่งเทอม (10 สัปดาห์)</option>
+              <option value="20">จองต่อเนื่องทั้งเทอม (20 สัปดาห์)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label><i class="fas fa-clock"></i> เวลาเริ่มต้น</label><input type="time" id="startTime" required></div>
+          <div class="form-group"><label><i class="fas fa-hourglass-end"></i> เวลาสิ้นสุด</label><input type="time" id="endTime" required></div>
+          <div class="form-group"><label><i class="fas fa-users-viewfinder"></i> จำนวนคน</label><input type="number" id="attendees" min="1" required></div>
+        </div>
+        <button onclick="submitBooking()" id="btnSubmit" class="btn-primary" style="margin-top:15px;"><i class="fas fa-paper-plane"></i> ส่งคำขอจองห้อง</button>
+        <button onclick="goBack()" class="btn-cancel"><i class="fas fa-arrow-left"></i> ยกเลิก / กลับ</button>
+        <div id="message" style="text-align:center; margin-top:15px; font-weight:500;"></div>
+      </div>
+    </div>
+
+    <div class="schedule-layout animate">
+      <div class="box-container" style="flex: 2;">
+        <h3><i class="far fa-calendar-alt"></i> ปฏิทินแสดงคิวการจอง</h3><div id="calendar"></div>
+      </div>
+      <div class="box-container" style="flex: 1; max-height: 600px; overflow-y: auto;">
+        <h3><i class="fas fa-list-ul"></i> คิวใช้งานเร็วๆ นี้</h3><div id="upcomingList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // URL Web App ใหม่ที่คุณครูให้มา
+    const API_URL = "https://script.google.com/macros/s/AKfycbwgV8PaQflHBcehwKKtIENDGUEFJAhiJ2Mrn1tguag_sQNfjOGj1A2E9zzcPRp_9jKdzA/exec";
+    
+    // ฟังก์ชันสำหรับเรียก API ข้ามไปยัง Google Apps Script
+    async function apiCall(action, data = null) {
+      let url = API_URL + (data ? "" : "?action=" + action);
+      let options = { method: data ? "POST" : "GET" };
+      if (data) {
+        options = { method: "POST", body: JSON.stringify({ action: action, data: data }), headers: { "Content-Type": "text/plain;charset=utf-8" } };
+      }
+      try {
+        let res = await fetch(url, options);
+        return await res.json();
+      } catch (e) {
+        console.error("API Error:", e);
+        return null;
+      }
+    }
+
+    let calendarInstance = null; let blackoutDatesList = [];
+
+    async function initPage() {
+      document.getElementById("date").setAttribute("min", new Date().toISOString().split('T')[0]);
+      let data = await apiCall('getInitialData');
+      if(data) {
+        processBlackouts(data.blackouts); 
+        processRooms(data.rooms); 
+        processSchedule(data.bookings);
+      } else {
+        document.getElementById('dynamicRoomsContainer').innerHTML = `<p style="text-align:center; color:red;">ไม่สามารถเชื่อมต่อฐานข้อมูลได้</p>`;
+      }
+    }
+
+    function goToAdmin() {
+      let pin = prompt("🔐 กรุณาใส่รหัสผ่านผู้ดูแลระบบ (Admin PIN):");
+      if (pin === "1234") {
+        window.location.href = "admin.html"; // เปลี่ยนไปหน้า admin.html บน GitHub
+      } else if (pin) {
+        alert("รหัสผ่านไม่ถูกต้อง");
+      }
+    }
+
+    function processBlackouts(dates) {
+      blackoutDatesList = dates;
+      if(dates.length > 0) {
+        let alertDiv = document.getElementById('blackoutAlert'); alertDiv.style.display = 'block';
+        alertDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <b>ประกาศแจ้งวันหยุดระบบ:</b><br>` + dates.map(d => `- วันที่ ${d.date} (${d.reason})`).join('<br>');
+      }
+    }
+
+    function checkBlackoutDate() {
+      let selDate = document.getElementById('date').value;
+      let isBO = blackoutDatesList.find(b => b.date === selDate);
+      if(isBO) { alert(`❌ ไม่สามารถจองได้\nวันที่ ${selDate} เป็นวันปิดระบบเนื่องจาก: ${isBO.reason}`); document.getElementById('date').value = ""; }
+    }
+
+    function processRooms(rooms) {
+      let container = document.getElementById('dynamicRoomsContainer');
+      if(!rooms.length) { container.innerHTML = `<p style="text-align:center;">ยังไม่มีข้อมูลห้องพัก</p>`; return; }
+      let html = "";
+      rooms.forEach(r => {
+        let img = r.image || "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80";
+        let isMaint = r.status === 'maintenance';
+        html += `<div class="card ${isMaint ? 'maintenance' : ''}">
+          ${isMaint ? '<div class="badge-maintenance"><i class="fas fa-tools"></i> ปิดปรับปรุง</div>' : ''}
+          <img src="${img}" class="card-img">
+          <div class="card-body">
+            <h3 class="card-title">${r.name}</h3>
+            <p class="card-desc"><i class="fas fa-user-friends"></i> รองรับ ${r.capacity} ท่าน <br> <i class="fas fa-tools"></i> ${r.facilities}</p>
+            <button class="btn-primary" onclick="openBookingForm('${r.name}')" ${isMaint ? 'disabled' : ''}>
+              <i class="fas ${isMaint ? 'fa-ban' : 'fa-check-circle'}"></i> ${isMaint ? 'งดให้บริการ' : 'เลือกห้องนี้'}
+            </button>
+          </div>
+        </div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function openBookingForm(room) { document.getElementById('roomSelectionView').style.display = 'none'; document.getElementById('bookingFormView').style.display = 'block'; document.getElementById('room').value = room; window.scrollTo(0, 0);}
+    function goBack() { document.getElementById('bookingFormView').style.display = 'none'; document.getElementById('roomSelectionView').style.display = 'block'; window.scrollTo(0, 0);}
+
+    async function submitBooking() {
+      let d = {
+        room: document.getElementById('room').value, topic: document.getElementById('topic').value,
+        firstName: document.getElementById('firstName').value, lastName: document.getElementById('lastName').value,
+        department: document.getElementById('department').value, phone: document.getElementById('phone').value,
+        attendees: document.getElementById('attendees').value, date: document.getElementById('date').value,
+        recurWeeks: document.getElementById('recurWeeks').value,
+        startTime: document.getElementById('startTime').value, endTime: document.getElementById('endTime').value
+      };
+      
+      let msgDiv = document.getElementById('message');
+      if(!d.topic || !d.firstName || !d.lastName || !d.department || !d.phone || !d.date || !d.startTime || !d.endTime) { msgDiv.innerHTML = "<span style='color:#e11d48;'><i class='fas fa-exclamation-circle'></i> กรุณากรอกข้อมูลให้ครบถ้วน</span>"; return; }
+      if(d.startTime >= d.endTime) { msgDiv.innerHTML = "<span style='color:#e11d48;'><i class='fas fa-exclamation-circle'></i> เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม</span>"; return; }
+      
+      let btn = document.getElementById('btnSubmit'); btn.disabled = true; btn.innerHTML = "<i class='fas fa-spinner fa-spin'></i> กำลังส่งคำขอ...";
+      
+      let res = await apiCall('saveBooking', d);
+      
+      btn.disabled = false; btn.innerHTML = "<i class='fas fa-paper-plane'></i> ส่งคำขอจองห้อง";
+      if(res && res.success) { 
+        msgDiv.innerHTML = `<span style="color:#16a34a"><i class="fas fa-check-circle"></i> ${res.message}</span>`;
+        document.getElementById('topic').value = ""; document.getElementById('firstName').value = ""; document.getElementById('lastName').value = ""; document.getElementById('department').value = ""; document.getElementById('phone').value = ""; document.getElementById('recurWeeks').value = "1";
+        
+        // โหลดปฏิทินใหม่
+        let freshData = await apiCall('getReservations');
+        if(freshData) processSchedule(freshData);
+        setTimeout(goBack, 2500); 
+      } else {
+        msgDiv.innerHTML = `<span style="color:#e11d48"><i class="fas fa-times-circle"></i> ${res ? res.message : "เกิดข้อผิดพลาดในการเชื่อมต่อ"}</span>`;
+      }
+    }
+
+    function processSchedule(data) {
+      let events = data.map(d => ({
+        title: `${d.room}: ${d.topic}`, start: `${d.date}T${d.startTime}:00`, end: `${d.date}T${d.endTime}:00`,
+        backgroundColor: d.status === 'approved' ? '#1A56DB' : (d.status==='pending' ? '#d97706' : '#e11d48')
+      }));
+      blackoutDatesList.forEach(b => { events.push({ title: `⛔ ปิดระบบ: ${b.reason}`, start: b.date, allDay: true, backgroundColor: '#ef4444', display: 'background' }); });
+      
+      if(calendarInstance) calendarInstance.destroy();
+      calendarInstance = new FullCalendar.Calendar(document.getElementById('calendar'), {
+        initialView: 'dayGridMonth', height: 'auto', events: events,
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' }, locale: 'th', contentHeight: 'auto'
+      });
+      calendarInstance.render();
+
+      let todayStr = new Date().toISOString().split('T')[0];
+      let upcoming = data.filter(d => d.status === 'approved' && d.date >= todayStr).slice(0, 10);
+      let listHtml = "";
+      if(upcoming.length === 0) listHtml = `<p style="color:gray; text-align:center;">ไม่มีรายการจองเร็วๆ นี้</p>`;
+      upcoming.forEach(u => {
+        let thaiDate = new Date(u.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+        listHtml += `<div class="booking-item">
+          <div class="b-time"><i class="fas fa-clock"></i> ${thaiDate} | ${u.startTime} - ${u.endTime}</div>
+          <div style="font-weight:600;">${u.room}</div>
+          <div class="b-detail"><i class="fas fa-info-circle"></i> ${u.topic} <br><i class="fas fa-user-check"></i> โดย ${u.firstName} (${u.department})</div>
+        </div>`;
+      });
+      document.getElementById('upcomingList').innerHTML = listHtml;
+    }
+  </script>
+</body>
+</html>

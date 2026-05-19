@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard | ธรรมศาสตร์คลองหลวงวิทยาคม</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <style>
+    :root { --bg: #f4f6f9; --card-bg: #ffffff; --text: #333; --text-muted: #6b7280; --border: #e5e7eb; --blue: #1A56DB; }
+    body { font-family: 'Sarabun', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; }
+    .nav-bar { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,0.05);}
+    .nav-brand { font-weight: 600; font-size: 18px; color: var(--blue);}
+    .btn-action { padding: 8px 16px; border: none; border-radius: 8px; font-family: 'Sarabun'; font-size: 14px; font-weight: 500; cursor: pointer; color: white; transition: 0.2s;}
+    .btn-home { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+    .btn-home:hover { background: var(--bg); color: var(--blue); border-color: var(--blue); }
+    .admin-container { max-width: 1300px; margin: 20px auto; padding: 0 20px; }
+    .dashboard-card { background: var(--card-bg); border-radius: 16px; padding: 30px; border: 1px solid var(--border); margin-bottom: 20px;}
+    .tabs { display: flex; gap: 15px; border-bottom: 1px solid var(--border); margin-bottom: 25px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;}
+    .tab { padding: 10px 15px; cursor: pointer; color: var(--text-muted); border-bottom: 3px solid transparent; font-weight: 500; font-size: 15px;}
+    .tab.active { color: var(--blue); border-bottom: 3px solid var(--blue); }
+    .tab-content { display: none; } .tab-content.active { display: block; }
+    input, select { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-family: 'Sarabun'; font-size: 14px; width: 100%; box-sizing: border-box; margin-bottom: 10px; outline:none;}
+    input:focus { border-color: var(--blue); }
+    .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 800px; }
+    th { text-align: left; padding: 14px 12px; color: var(--text-muted); border-bottom: 2px solid var(--border); font-weight: 600;}
+    td { padding: 14px 12px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+    tr:hover td { background-color: #f9fafb; }
+    .status-badge { padding: 6px 12px; border-radius: 980px; font-size: 12px; font-weight: 600; display: inline-block;}
+    @media screen and (max-width: 768px) {
+      .nav-bar { padding: 15px; flex-direction: column; gap: 10px; text-align: center;}
+      .dashboard-card { padding: 15px; } .filter-bar { flex-direction: column; }
+      .chart-box, .flex-1, .flex-2 { min-width: 100% !important; }
+      .btn-action { width: 100%; margin-bottom: 5px; } #tab-bookings .btn-action { width: auto; margin-bottom: 0; }
+    }
+  </style>
+</head>
+<body onload="initAdmin()">
+
+  <div class="nav-bar">
+    <div class="nav-brand"><i class="fas fa-shield-alt"></i> ศูนย์จัดการระบบ ธรรมศาสตร์คลองหลวงฯ</div>
+    <div><button class="btn-action btn-home" onclick="goHome()"><i class="fas fa-sign-out-alt"></i> กลับหน้าหลัก</button></div>
+  </div>
+
+  <div class="admin-container">
+    <div class="dashboard-card">
+      
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('analytics')"><i class="fas fa-chart-pie"></i> สถิติ</div>
+        <div class="tab" onclick="switchTab('bookings')"><i class="fas fa-calendar-check"></i> คำขอจอง</div>
+        <div class="tab" onclick="switchTab('rooms')"><i class="fas fa-building"></i> จัดการห้อง</div>
+        <div class="tab" onclick="switchTab('settings')"><i class="fas fa-cogs"></i> วันหยุดระบบ</div>
+      </div>
+
+      <div id="tab-analytics" class="tab-content active">
+        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+          <div class="chart-box" style="flex:1; border:1px solid var(--border); border-radius:16px; padding:20px; text-align:center; min-width: 300px;"><canvas id="roomChart"></canvas></div>
+          <div class="chart-box" style="flex:1; border:1px solid var(--border); border-radius:16px; padding:20px; text-align:center; min-width: 300px;"><canvas id="statusChart"></canvas></div>
+        </div>
+      </div>
+
+      <div id="tab-bookings" class="tab-content">
+        <div class="filter-bar" style="display:flex; gap:10px; margin-bottom: 15px;">
+          <input type="text" id="search" placeholder="🔍 ค้นหาข้อมูล..." onkeyup="filterTable()" style="margin-bottom:0;">
+          <button class="btn-action" style="background:#10b981; white-space:nowrap; width: auto;" onclick="exportCSV()"><i class="fas fa-file-excel"></i> ดาวน์โหลด CSV</button>
+        </div>
+        <div class="table-wrapper"><div id="tableContainer">กำลังดึงข้อมูล API...</div></div>
+      </div>
+
+      <div id="tab-rooms" class="tab-content">
+        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+          <div class="flex-1" style="flex:1; background: #f9fafb; padding: 25px; border-radius: 16px; border: 1px solid var(--border); min-width:300px;">
+            <h3 id="roomFormTitle" style="margin-top:0; color: var(--blue);"><i class="fas fa-plus-circle"></i> เพิ่มห้องใหม่</h3>
+            <input type="text" id="rName" placeholder="ชื่อห้อง">
+            <input type="number" id="rCap" placeholder="ความจุ (คน)">
+            <input type="text" id="rFac" placeholder="สิ่งอำนวยความสะดวก">
+            <input type="text" id="rImg" placeholder="ลิงก์รูปภาพ (Optional)">
+            <button id="btnSaveRoom" class="btn-action" style="background:var(--blue); width:100%; padding:12px;" onclick="addRoom()">บันทึกห้องใหม่</button>
+            <button id="btnCancelEdit" class="btn-action" style="background:transparent; border:1px solid gray; color:gray; width:100%; padding:12px; margin-top:10px; display:none;" onclick="cancelEditRoom()">ยกเลิกการแก้ไข</button>
+          </div>
+          <div class="flex-2 table-wrapper" style="flex:2; min-width:300px;" id="roomsTable">กำลังโหลด...</div>
+        </div>
+      </div>
+
+      <div id="tab-settings" class="tab-content">
+        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+          <div class="flex-1" style="flex:1; background: #fff1f2; padding: 25px; border-radius: 16px; border: 1px solid #fecdd3; min-width:300px;">
+            <h3 style="margin-top:0; color:#e11d48;"><i class="fas fa-calendar-times"></i> เพิ่มวันหยุด / ปิดระบบ</h3>
+            <label style="font-size:13px; font-weight:600;">เลือกวันที่ปิดระบบ</label>
+            <input type="date" id="bDate">
+            <label style="font-size:13px; font-weight:600;">เหตุผลที่ปิดระบบ</label>
+            <input type="text" id="bReason" placeholder="เช่น วันหยุดนักขัตฤกษ์">
+            <button class="btn-action" style="background:#e11d48; width:100%; padding:12px;" onclick="addBlackout()"><i class="fas fa-save"></i> บันทึก</button>
+          </div>
+          <div class="flex-2 table-wrapper" style="flex:2; min-width:300px;">
+            <div id="blackoutTable">กำลังโหลด...</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbwgV8PaQflHBcehwKKtIENDGUEFJAhiJ2Mrn1tguag_sQNfjOGj1A2E9zzcPRp_9jKdzA/exec";
+    
+    async function apiCall(action, data = null) {
+      let url = API_URL + (data ? "" : "?action=" + action);
+      let options = { method: data ? "POST" : "GET" };
+      if (data) {
+        options = { method: "POST", body: JSON.stringify({ action: action, data: data }), headers: { "Content-Type": "text/plain;charset=utf-8" } };
+      }
+      try {
+        let res = await fetch(url, options);
+        return await res.json();
+      } catch (e) {
+        console.error("API Error:", e);
+        return null;
+      }
+    }
+
+    let globalData = []; let globalRooms = []; let roomChart, statusChart; let editingRoomId = null;
+
+    function initAdmin() { refreshAllData(); }
+    function goHome() { window.location.href = "index.html"; }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      event.target.classList.add('active'); document.getElementById('tab-' + tab).classList.add('active');
+    }
+
+    async function refreshAllData() {
+      let data = await apiCall('getInitialData');
+      if(data) {
+        globalData = data.bookings; globalRooms = data.rooms;
+        renderTable(data.bookings); renderCharts(data.bookings);
+        renderRooms(data.rooms); renderBlackouts(data.blackouts);
+      }
+    }
+
+    function renderCharts(data) {
+      let rCounts = {}; let sCounts = { approved: 0, pending: 0, rejected: 0 };
+      data.forEach(d => { rCounts[d.room] = (rCounts[d.room] || 0) + 1; if(sCounts[d.status] !== undefined) sCounts[d.status]++; });
+      if(roomChart) roomChart.destroy();
+      roomChart = new Chart(document.getElementById('roomChart'), { type: 'doughnut', data: { labels: Object.keys(rCounts), datasets: [{ data: Object.values(rCounts), backgroundColor: ['#1A56DB', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] }] } });
+      if(statusChart) statusChart.destroy();
+      statusChart = new Chart(document.getElementById('statusChart'), { type: 'bar', data: { labels: ['อนุมัติ', 'รออนุมัติ', 'ไม่อนุมัติ'], datasets: [{ label: 'จำนวนคำขอ', data: [sCounts.approved, sCounts.pending, sCounts.rejected], backgroundColor: ['#10b981', '#f59e0b', '#ef4444'] }] }, options: { plugins: { legend: { display: false } } } });
+    }
+
+    function renderTable(data) {
+      let html = "<table><tr><th>เวลาทำรายการ</th><th>วัน/เวลาจอง</th><th>รายละเอียด</th><th>ข้อมูลผู้จอง</th><th>สถานะ</th><th>จัดการ</th></tr>";
+      data.forEach(d => {
+        let ts = new Date(d.timestamp).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+        let badgeColor = d.status === 'approved' ? 'background:#d1fae5; color:#059669;' : (d.status==='pending' ? 'background:#fef3c7; color:#d97706;' : 'background:#fee2e2; color:#b91c1c;');
+        let statusTxt = d.status === 'approved' ? 'อนุมัติ' : (d.status==='pending' ? 'รอพิจารณา' : 'ไม่อนุมัติ');
+        
+        let act = d.status === 'pending' 
+          ? `<button class="btn-action" style="background:#10b981; margin-bottom:5px; width:100%;" onclick="chg('${d.id}','approved')"><i class="fas fa-check"></i> อนุมัติ</button><br> 
+             <button class="btn-action" style="background:#ef4444; width:100%;" onclick="chg('${d.id}','rejected')"><i class="fas fa-times"></i> ปฏิเสธ</button>` 
+          : `<button class="btn-action" style="background:transparent; border:1px solid #ef4444; color:#ef4444; width:100%;" onclick="del('${d.id}')">ลบถาวร</button>`;
+        
+        html += `<tr>
+          <td><span style="color:gray; font-size:12px;">${ts}</span></td>
+          <td><b>${d.date}</b><br><span style="color:gray; font-size:12px;">${d.startTime} - ${d.endTime}</span></td>
+          <td><b>${d.room}</b><br><span style="color:gray; font-size:12px;">${d.topic}</span></td>
+          <td>${d.firstName} ${d.lastName}<br><span style="color:gray; font-size:12px;">${d.department} | ${d.phone}</span></td>
+          <td><span class="status-badge" style="${badgeColor}">${statusTxt}</span></td>
+          <td>${act}</td>
+        </tr>`;
+      });
+      document.getElementById('tableContainer').innerHTML = html + "</table>";
+    }
+
+    function filterTable() {
+      let v = document.getElementById('search').value.toLowerCase();
+      renderTable(globalData.filter(d => d.room.toLowerCase().includes(v) || d.firstName.toLowerCase().includes(v) || d.lastName.toLowerCase().includes(v) || d.department.toLowerCase().includes(v)));
+    }
+
+    async function chg(id, st) { await apiCall('updateBookingStatus', {id: id, status: st}); refreshAllData(); }
+    async function del(id) { if(confirm("ลบข้อมูลนี้ถาวร?")) { await apiCall('deleteBooking', {id: id}); refreshAllData(); } }
+
+    function exportCSV() {
+      let csv = "data:text/csv;charset=utf-8,\uFEFFเวลาทำรายการ,วันที่จอง,เวลาเริ่ม,เวลาสิ้นสุด,ห้อง,หัวข้อกิจกรรม,ชื่อ,นามสกุล,หน่วยงาน,เบอร์โทร,จำนวนคน,สถานะ\n";
+      globalData.forEach(d => {
+        let ts = new Date(d.timestamp).toLocaleString('th-TH');
+        let st = d.status === 'approved' ? 'อนุมัติ' : (d.status==='pending' ? 'รอพิจารณา' : 'ไม่อนุมัติ');
+        csv += `${ts},${d.date},${d.startTime},${d.endTime},${d.room},${d.topic},${d.firstName},${d.lastName},${d.department},${d.phone},${d.attendees},${st}\n`;
+      });
+      let l = document.createElement("a"); l.href = encodeURI(csv); l.download = "รายงานจองห้อง.csv"; l.click();
+    }
+
+    function renderRooms(rooms) {
+      let h = "<table><tr><th>สถานะ</th><th>ชื่อห้อง</th><th>ความจุ</th><th>จัดการ</th></tr>";
+      rooms.forEach(x => {
+        let stBtn = x.status === 'maintenance' 
+          ? `<button class="btn-action" style="background:#ef4444; width:80px; padding:6px; margin-bottom:5px;" onclick="tglMaint('${x.id}', '${x.status}')"><i class="fas fa-tools"></i> ปิดซ่อม</button>` 
+          : `<button class="btn-action" style="background:#10b981; width:80px; padding:6px; margin-bottom:5px;" onclick="tglMaint('${x.id}', '${x.status}')"><i class="fas fa-check-circle"></i> เปิดใช้</button>`;
+        let actBtns = `<div style="display:flex; gap:5px; flex-wrap:wrap;">
+                        <a href="kiosk.html?room=${encodeURIComponent(x.name)}" target="_blank" class="btn-action" style="background:#8b5cf6; text-decoration:none;"><i class="fas fa-tv"></i> Kiosk</a>
+                        <button class="btn-action" style="background:#f59e0b; padding:6px;" onclick="editRoom('${x.id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn-action" style="background:transparent; color:#ef4444; border:1px solid #ef4444; padding:6px;" onclick="delR('${x.id}')"><i class="fas fa-trash"></i></button>
+                       </div>`;
+        h += `<tr><td>${stBtn}</td><td><b>${x.name}</b><br><span style="font-size:12px;color:gray;">${x.facilities}</span></td><td>${x.capacity}</td><td>${actBtns}</td></tr>`;
+      });
+      document.getElementById('roomsTable').innerHTML = h + "</table>";
+    }
+    
+    function editRoom(id) {
+      let room = globalRooms.find(r => r.id === id); if(!room) return;
+      editingRoomId = id; document.getElementById('rName').value = room.name; document.getElementById('rCap').value = room.capacity; document.getElementById('rFac').value = room.facilities; document.getElementById('rImg').value = room.image || "";
+      document.getElementById('roomFormTitle').innerHTML = '<i class="fas fa-edit"></i> แก้ไขข้อมูลห้อง'; document.getElementById('roomFormTitle').style.color = '#f59e0b';
+      let btn = document.getElementById('btnSaveRoom'); btn.innerHTML = '<i class="fas fa-save"></i> บันทึกการแก้ไข'; btn.style.background = '#f59e0b'; btn.onclick = submitEditRoom;
+      document.getElementById('btnCancelEdit').style.display = 'block';
+    }
+    
+    function cancelEditRoom() {
+      editingRoomId = null; document.getElementById('rName').value = ""; document.getElementById('rCap').value = ""; document.getElementById('rFac').value = ""; document.getElementById('rImg').value = "";
+      document.getElementById('roomFormTitle').innerHTML = '<i class="fas fa-plus-circle"></i> เพิ่มห้องใหม่'; document.getElementById('roomFormTitle').style.color = 'var(--blue)';
+      let btn = document.getElementById('btnSaveRoom'); btn.innerHTML = 'บันทึกห้องใหม่'; btn.style.background = 'var(--blue)'; btn.onclick = addRoom;
+      document.getElementById('btnCancelEdit').style.display = 'none';
+    }
+    
+    async function addRoom() {
+      let n = document.getElementById('rName').value, c = document.getElementById('rCap').value, f = document.getElementById('rFac').value, i = document.getElementById('rImg').value;
+      if(!n) return alert('กรุณาใส่ชื่อห้อง');
+      let btn = document.getElementById('btnSaveRoom'); btn.disabled = true; btn.innerHTML = 'กำลังบันทึก...';
+      await apiCall('saveRoom', {name:n, capacity:c, facilities:f, image:i});
+      btn.disabled = false; btn.innerHTML = 'บันทึกห้องใหม่';
+      document.getElementById('rName').value = ""; document.getElementById('rCap').value = ""; document.getElementById('rFac').value = ""; document.getElementById('rImg').value = ""; 
+      refreshAllData();
+    }
+
+    async function submitEditRoom() {
+      let n = document.getElementById('rName').value, c = document.getElementById('rCap').value, f = document.getElementById('rFac').value, i = document.getElementById('rImg').value;
+      if(!n) return alert('กรุณาใส่ชื่อห้อง');
+      let btn = document.getElementById('btnSaveRoom'); btn.disabled = true; btn.innerHTML = 'กำลังอัปเดต...';
+      await apiCall('updateRoomDetails', {id: editingRoomId, roomData: {name:n, capacity:c, facilities:f, image:i}});
+      btn.disabled = false; cancelEditRoom(); refreshAllData();
+    }
+
+    async function delR(id) { if(confirm("ลบห้องนี้?")) { await apiCall('deleteRoom', {id: id}); refreshAllData(); } }
+    async function tglMaint(id, st) { await apiCall('toggleRoomMaintenance', {id: id, status: st}); refreshAllData(); }
+
+    function renderBlackouts(dates) {
+      let h = "<table><tr><th>วันที่ปิดระบบ</th><th>สาเหตุ</th><th>จัดการ</th></tr>";
+      if(dates.length === 0) h += "<tr><td colspan='3' style='text-align:center;'>ยังไม่มีการตั้งค่าว้นหยุด</td></tr>";
+      dates.forEach(d => {
+        h += `<tr><td><b><i class="fas fa-calendar-times" style="color:#e11d48;"></i> ${d.date}</b></td><td>${d.reason}</td>
+              <td><button class="btn-action" style="background:transparent; color:#e11d48; border:1px solid #e11d48; padding:6px;" onclick="delBO('${d.id}')">ลบ</button></td></tr>`;
+      });
+      document.getElementById('blackoutTable').innerHTML = h + "</table>";
+    }
+    
+    async function addBlackout() {
+      let d = document.getElementById('bDate').value, r = document.getElementById('bReason').value;
+      if(!d || !r) return alert("กรุณาเลือกวันที่และใส่เหตุผล");
+      await apiCall('addBlackoutDate', {date:d, reason:r});
+      document.getElementById('bDate').value = ""; document.getElementById('bReason').value = ""; refreshAllData();
+    }
+    async function delBO(id) { if(confirm("ต้องการลบวันหยุดนี้?")) { await apiCall('deleteBlackoutDate', {id: id}); refreshAllData(); } }
+  </script>
+</body>
+</html>
