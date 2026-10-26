@@ -202,6 +202,7 @@
           <label><i class="fas fa-clipboard-list"></i> ข้อมูลอื่น ๆ (เพิ่มเติม)</label>
           <input type="text" id="otherInfo" placeholder="ระบุความต้องการเพิ่มเติม (ถ้ามี)">
         </div>
+        
         <button onclick="submitBooking()" id="btnSubmit" class="btn-primary" style="margin-top:20px;"><i class="fas fa-paper-plane"></i> ยืนยันการจองห้อง</button>
         <button onclick="goBack()" class="btn-cancel"><i class="fas fa-arrow-left"></i> ยกเลิก / กลับไปเลือกห้อง</button>
         <div id="message" style="text-align:center; margin-top:20px; font-weight:700; font-size:16px;"></div>
@@ -368,8 +369,8 @@
         department: document.getElementById('department').value, phone: document.getElementById('phone').value,
         attendees: document.getElementById('attendees').value, date: document.getElementById('date').value,
         recurWeeks: document.getElementById('recurWeeks').value, startTime: document.getElementById('startTime').value, endTime: document.getElementById('endTime').value,
-        microphones: mics 
-        document.getElementById('otherInfo').value = "";
+        microphones: mics,
+        otherInfo: document.getElementById('otherInfo').value // เพิ่มบรรทัดนี้
       };
       
       if(!d.topic || !d.firstName || !d.lastName || !d.department || !d.phone || !d.date || !d.startTime || !d.endTime) { msgDiv.innerHTML = "<span style='color:#dc2626;'><i class='fas fa-exclamation-circle'></i> กรุณากรอกข้อมูลให้ครบถ้วน</span>"; return; }
