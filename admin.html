@@ -79,7 +79,7 @@
             <input type="text" id="rName" placeholder="ชื่อห้อง">
             <input type="number" id="rCap" placeholder="ความจุ (คน)">
             <input type="text" id="rFac" placeholder="สิ่งอำนวยความสะดวก">
-            <input type="text" id="rImg" placeholder="ลิงก์รูปภาพ (Optional)">
+            <input type="text" id="rImg" placeholder="ลิงก์รูปภาพ หรือ ลิงก์แชร์ Google Drive (Optional)">
             <button id="btnSaveRoom" class="btn-action" style="background:var(--blue); width:100%; padding:12px;" onclick="addRoom()">บันทึกห้องใหม่</button>
             <button id="btnCancelEdit" class="btn-action" style="background:transparent; border:1px solid gray; color:gray; width:100%; padding:12px; margin-top:10px; display:none;" onclick="cancelEditRoom()">ยกเลิกการแก้ไข</button>
           </div>
@@ -235,9 +235,25 @@
       let btn = document.getElementById('btnSaveRoom'); btn.innerHTML = 'บันทึกห้องใหม่'; btn.style.background = 'var(--blue)'; btn.onclick = addRoom;
       document.getElementById('btnCancelEdit').style.display = 'none';
     }
-    
+    // ฟังก์ชันแปลงลิงก์ Google Drive เป็น Direct Link รูปภาพสำหรับแสดงผลบนเว็บ
+function formatImageLink(url) {
+  if (!url) return "";
+  
+  // แกะเอา File ID จากลิงก์รูปแบบต่างๆ ของ Google Drive
+  let match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || 
+              url.match(/id=([a-zA-Z0-9_-]+)/) ||
+              url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+              
+  if (match && match[1]) {
+    // ใช้รูปแบบ CDN ของ Google (lh3.googleusercontent.com) เพื่อให้แสดงรูปภาพได้ชัวร์ ไม่ติด CORS
+    return `https://lh3.googleusercontent.com/d/${match[1]}`;
+  }
+  return url;
+}
+
     async function addRoom() {
-      let n = document.getElementById('rName').value, c = document.getElementById('rCap').value, f = document.getElementById('rFac').value, i = document.getElementById('rImg').value;
+      let n = document.getElementById('rName').value, c = document.getElementById('rCap').value, f = document.getElementById('rFac').value;
+      let i = formatImageLink(document.getElementById('rImg').value); // ดึงและแปลงลิงก์
       if(!n) return alert('กรุณาใส่ชื่อห้อง');
       let btn = document.getElementById('btnSaveRoom'); btn.disabled = true; btn.innerHTML = 'กำลังบันทึก...';
       lastDataHash = "";
@@ -248,14 +264,14 @@
     }
 
     async function submitEditRoom() {
-      let n = document.getElementById('rName').value, c = document.getElementById('rCap').value, f = document.getElementById('rFac').value, i = document.getElementById('rImg').value;
+      let n = document.getElementById('rName').value, c = document.getElementById('rCap').value, f = document.getElementById('rFac').value;
+      let i = formatImageLink(document.getElementById('rImg').value); // ดึงและแปลงลิงก์
       if(!n) return alert('กรุณาใส่ชื่อห้อง');
       let btn = document.getElementById('btnSaveRoom'); btn.disabled = true; btn.innerHTML = 'กำลังอัปเดต...';
       lastDataHash = "";
       await apiCall('updateRoomDetails', {id: editingRoomId, roomData: {name:n, capacity:c, facilities:f, image:i}});
       btn.disabled = false; cancelEditRoom(); refreshAllData();
     }
-
     async function delR(id) { if(confirm("ลบห้องนี้?")) { lastDataHash = ""; await apiCall('deleteRoom', {id: id}); refreshAllData(); } }
     async function tglMaint(id, st) { lastDataHash = ""; await apiCall('toggleRoomMaintenance', {id: id, status: st}); refreshAllData(); }
 
