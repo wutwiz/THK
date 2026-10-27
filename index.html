@@ -195,7 +195,7 @@
         </div>
 
         <div class="form-group">
-          <label><i class="fas fa-microphone"></i> จำนวนไมโครโฟนที่ต้องการยืม (สูงสุด 20 ตัว)</label>
+          <label><i class="fas fa-microphone"></i> จำนวนไมโครโฟนที่ต้องการยืม</label>
           <input type="number" id="microphones" min="0" max="20" value="0" placeholder="ระบุจำนวน (ถ้าไม่ยืมให้ใส่ 0)">
         </div>
         <div class="form-group">
@@ -289,6 +289,7 @@
     let blackoutDatesList = [];
     let isSubmitting = false; 
     let lastDataHash = "";
+    let globalRoomsList = []; // เพิ่มบรรทัดนี้เพื่อเก็บข้อมูลห้อง
 
     async function initPage() {
       document.getElementById("date").setAttribute("min", new Date().toISOString().split('T')[0]);
@@ -332,6 +333,7 @@
     }
 
     function processRooms(rooms) {
+      globalRoomsList = rooms; // เพิ่มบรรทัดนี้
       let container = document.getElementById('dynamicRoomsContainer');
       if(!rooms.length) { container.innerHTML = `<p style="text-align:center; color:#475569; font-weight:600;">ยังไม่มีข้อมูลห้องพัก</p>`; return; }
       let html = "";
@@ -353,15 +355,41 @@
       container.innerHTML = html;
     }
 
-    function openBookingForm(room) { document.getElementById('roomSelectionView').style.display = 'none'; document.getElementById('bookingFormView').style.display = 'block'; document.getElementById('room').value = room; window.scrollTo({ top: 0, behavior: 'smooth' });}
+    function openBookingForm(roomName) { 
+  document.getElementById('roomSelectionView').style.display = 'none'; 
+  document.getElementById('bookingFormView').style.display = 'block'; 
+  document.getElementById('room').value = roomName; 
+
+  // ค้นหาข้อมูลห้องที่เลือกเพื่อดึงค่า maxMics
+  let selectedRoomData = globalRoomsList.find(r => r.name === roomName);
+  let micInput = document.getElementById('microphones');
+  
+  if (selectedRoomData && selectedRoomData.maxMics !== undefined) {
+    let max = parseInt(selectedRoomData.maxMics) || 0;
+    micInput.setAttribute('max', max);
+    micInput.placeholder = `ระบุจำนวน (สูงสุด ${max} ตัว / ถ้าไม่ยืมใส่ 0)`;
+  } else {
+    micInput.setAttribute('max', 20); // ค่าเริ่มต้นสำรองกรณีไม่มีข้อมูล
+    micInput.placeholder = "ระบุจำนวน (ถ้าไม่ยืมให้ใส่ 0)";
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
     function goBack() { document.getElementById('bookingFormView').style.display = 'none'; document.getElementById('roomSelectionView').style.display = 'block'; window.scrollTo({ top: 0, behavior: 'smooth' });}
 
     async function submitBooking() {
       if(isSubmitting) return;
 
       let msgDiv = document.getElementById('message');
-      let mics = parseInt(document.getElementById('microphones').value) || 0;
-      if(mics < 0 || mics > 20) { msgDiv.innerHTML = "<span style='color:#dc2626;'><i class='fas fa-exclamation-circle'></i> จำนวนไมโครโฟนต้องอยู่ระหว่าง 0 - 20 ตัว</span>"; return; }
+let selectedRoomName = document.getElementById('room').value;
+let selectedRoomData = globalRoomsList.find(r => r.name === selectedRoomName);
+let maxAllowedMics = selectedRoomData && selectedRoomData.maxMics !== undefined ? parseInt(selectedRoomData.maxMics) : 20;
+
+let mics = parseInt(document.getElementById('microphones').value) || 0;
+if(mics < 0 || mics > maxAllowedMics) { 
+  msgDiv.innerHTML = `<span style='color:#dc2626;'><i class='fas fa-exclamation-circle'></i> ห้องนี้สามารถยืมไมโครโฟนได้สูงสุด ${maxAllowedMics} ตัวเท่านั้น</span>`; 
+  return; 
+}
 
       let d = {
         room: document.getElementById('room').value, topic: document.getElementById('topic').value,
@@ -393,16 +421,19 @@
     }
 
     function processSchedule(data) {
-      let events = data.map(d => ({
-        title: `${d.room}: ${d.topic}`, start: `${d.date}T${d.startTime}:00`, end: `${d.date}T${d.endTime}:00`,
-        backgroundColor: d.status === 'approved' ? '#2563eb' : (d.status==='pending' ? '#d97706' : '#e11d48'),
-        extendedProps: {
-          room: d.room, topic: d.topic, name: `${d.firstName} ${d.lastName}`,
-          dept: d.department, status: d.status, mics: d.microphones || 0,
-          dateStr: new Date(d.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }),
-          timeStr: `${d.startTime} - ${d.endTime} น.`
-        }
-      }));
+  // กรองเฉพาะรายการที่ไม่ถูกปฏิเสธ (เอาเฉพาะ approved และ pending) มาแสดงบนปฏิทิน
+  let events = data
+    .filter(d => d.status !== 'rejected')
+    .map(d => ({
+      title: `${d.room}: ${d.topic}`, start: `${d.date}T${d.startTime}:00`, end: `${d.date}T${d.endTime}:00`,
+      backgroundColor: d.status === 'approved' ? '#2563eb' : '#d97706',
+      extendedProps: {
+        room: d.room, topic: d.topic, name: `${d.firstName} ${d.lastName}`,
+        dept: d.department, status: d.status, mics: d.microphones || 0,
+        dateStr: new Date(d.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }),
+        timeStr: `${d.startTime} - ${d.endTime} น.`
+      }
+    }));
       
       blackoutDatesList.forEach(b => { events.push({ title: `⛔ ปิดระบบ: ${b.reason}`, start: b.date, allDay: true, backgroundColor: '#ef4444', display: 'background', extendedProps: { status: 'blackout' } }); });
       
