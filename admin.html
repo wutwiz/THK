@@ -79,6 +79,7 @@
             <input type="text" id="rName" placeholder="ชื่อห้อง">
             <input type="number" id="rCap" placeholder="ความจุ (คน)">
             <input type="text" id="rFac" placeholder="สิ่งอำนวยความสะดวก">
+            <input type="number" id="rMaxMics" placeholder="จำนวนไมโครโฟนสูงสุดที่ยืมได้ (เช่น 5)" min="0">
             <input type="text" id="rImg" placeholder="ลิงก์รูปภาพ หรือ ลิงก์แชร์ Google Drive (Optional)">
             <button id="btnSaveRoom" class="btn-action" style="background:var(--blue); width:100%; padding:12px;" onclick="addRoom()">บันทึกห้องใหม่</button>
             <button id="btnCancelEdit" class="btn-action" style="background:transparent; border:1px solid gray; color:gray; width:100%; padding:12px; margin-top:10px; display:none;" onclick="cancelEditRoom()">ยกเลิกการแก้ไข</button>
@@ -208,33 +209,54 @@
     }
 
     function renderRooms(rooms) {
-      let h = "<table><tr><th>สถานะ</th><th>ชื่อห้อง</th><th>ความจุ</th><th>จัดการ</th></tr>";
-      rooms.forEach(x => {
-        let stBtn = x.status === 'maintenance' ? `<button class="btn-action" style="background:#ef4444; width:80px; padding:6px; margin-bottom:5px;" onclick="tglMaint('${x.id}', '${x.status}')"><i class="fas fa-tools"></i> ปิดซ่อม</button>` : `<button class="btn-action" style="background:#10b981; width:80px; padding:6px; margin-bottom:5px;" onclick="tglMaint('${x.id}', '${x.status}')"><i class="fas fa-check-circle"></i> เปิดใช้</button>`;
-        let actBtns = `<div style="display:flex; gap:5px; flex-wrap:wrap;">
-                        <a href="kiosk.html?room=${encodeURIComponent(x.name)}" target="_blank" class="btn-action" style="background:#8b5cf6; text-decoration:none;"><i class="fas fa-tv"></i> Kiosk</a>
-                        <button class="btn-action" style="background:#f59e0b; padding:6px;" onclick="editRoom('${x.id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn-action" style="background:transparent; color:#ef4444; border:1px solid #ef4444; padding:6px;" onclick="delR('${x.id}')"><i class="fas fa-trash"></i></button>
-                       </div>`;
-        h += `<tr><td>${stBtn}</td><td><b>${x.name}</b><br><span style="font-size:12px;color:gray;">${x.facilities}</span></td><td>${x.capacity}</td><td>${actBtns}</td></tr>`;
-      });
-      document.getElementById('roomsTable').innerHTML = h + "</table>";
-    }
+  let h = "<table><tr><th>สถานะ</th><th>ชื่อห้อง</th><th>ความจุ</th><th>จัดการ</th></tr>";
+  rooms.forEach(x => {
+    let stBtn = x.status === 'maintenance' ? `<button class="btn-action" style="background:#ef4444; width:80px; padding:6px; margin-bottom:5px;" onclick="tglMaint('${x.id}', '${x.status}')"><i class="fas fa-tools"></i> ปิดซ่อม</button>` : `<button class="btn-action" style="background:#10b981; width:80px; padding:6px; margin-bottom:5px;" onclick="tglMaint('${x.id}', '${x.status}')"><i class="fas fa-check-circle"></i> เปิดใช้</button>`;
+    let actBtns = `<div style="display:flex; gap:5px; flex-wrap:wrap;">
+                    <a href="kiosk.html?room=${encodeURIComponent(x.name)}" target="_blank" class="btn-action" style="background:#8b5cf6; text-decoration:none;"><i class="fas fa-tv"></i> Kiosk</a>
+                    <button class="btn-action" style="background:#f59e0b; padding:6px;" onclick="editRoom('${x.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn-action" style="background:transparent; color:#ef4444; border:1px solid #ef4444; padding:6px;" onclick="delR('${x.id}')"><i class="fas fa-trash"></i></button>
+                   </div>`;
+    let micInfo = x.maxMics !== undefined ? ` | <i class="fas fa-microphone"></i> ไมค์สูงสุด ${x.maxMics} ตัว` : '';
+    h += `<tr><td>${stBtn}</td><td><b>${x.name}</b><br><span style="font-size:12px;color:gray;">${x.facilities}${micInfo}</span></td><td>${x.capacity}</td><td>${actBtns}</td></tr>`;
+  });
+  document.getElementById('roomsTable').innerHTML = h + "</table>";
+}
     
     function editRoom(id) {
-      let room = globalRooms.find(r => r.id === id); if(!room) return;
-      editingRoomId = id; document.getElementById('rName').value = room.name; document.getElementById('rCap').value = room.capacity; document.getElementById('rFac').value = room.facilities; document.getElementById('rImg').value = room.image || "";
-      document.getElementById('roomFormTitle').innerHTML = '<i class="fas fa-edit"></i> แก้ไขข้อมูลห้อง'; document.getElementById('roomFormTitle').style.color = '#f59e0b';
-      let btn = document.getElementById('btnSaveRoom'); btn.innerHTML = '<i class="fas fa-save"></i> บันทึกการแก้ไข'; btn.style.background = '#f59e0b'; btn.onclick = submitEditRoom;
-      document.getElementById('btnCancelEdit').style.display = 'block';
-    }
-    
-    function cancelEditRoom() {
-      editingRoomId = null; document.getElementById('rName').value = ""; document.getElementById('rCap').value = ""; document.getElementById('rFac').value = ""; document.getElementById('rImg').value = "";
-      document.getElementById('roomFormTitle').innerHTML = '<i class="fas fa-plus-circle"></i> เพิ่มห้องใหม่'; document.getElementById('roomFormTitle').style.color = 'var(--blue)';
-      let btn = document.getElementById('btnSaveRoom'); btn.innerHTML = 'บันทึกห้องใหม่'; btn.style.background = 'var(--blue)'; btn.onclick = addRoom;
-      document.getElementById('btnCancelEdit').style.display = 'none';
-    }
+  let room = globalRooms.find(r => r.id === id); if(!room) return;
+  editingRoomId = id; 
+  document.getElementById('rName').value = room.name; 
+  document.getElementById('rCap').value = room.capacity; 
+  document.getElementById('rFac').value = room.facilities; 
+  document.getElementById('rMaxMics').value = room.maxMics || 0; // เพิ่มบรรทัดนี้
+  document.getElementById('rImg').value = room.image || "";
+  
+  document.getElementById('roomFormTitle').innerHTML = '<i class="fas fa-edit"></i> แก้ไขข้อมูลห้อง'; 
+  document.getElementById('roomFormTitle').style.color = '#f59e0b';
+  let btn = document.getElementById('btnSaveRoom'); 
+  btn.innerHTML = '<i class="fas fa-save"></i> บันทึกการแก้ไข'; 
+  btn.style.background = '#f59e0b'; 
+  btn.onclick = submitEditRoom;
+  document.getElementById('btnCancelEdit').style.display = 'block';
+}
+
+function cancelEditRoom() {
+  editingRoomId = null; 
+  document.getElementById('rName').value = ""; 
+  document.getElementById('rCap').value = ""; 
+  document.getElementById('rFac').value = ""; 
+  document.getElementById('rMaxMics').value = ""; // เพิ่มบรรทัดนี้
+  document.getElementById('rImg').value = "";
+  
+  document.getElementById('roomFormTitle').innerHTML = '<i class="fas fa-plus-circle"></i> เพิ่มห้องใหม่'; 
+  document.getElementById('roomFormTitle').style.color = 'var(--blue)';
+  let btn = document.getElementById('btnSaveRoom'); 
+  btn.innerHTML = 'บันทึกห้องใหม่'; 
+  btn.style.background = 'var(--blue)'; 
+  btn.onclick = addRoom;
+  document.getElementById('btnCancelEdit').style.display = 'none';
+}
     // ฟังก์ชันแปลงลิงก์ Google Drive เป็น Direct Link รูปภาพสำหรับแสดงผลบนเว็บ
 function formatImageLink(url) {
   if (!url) return "";
@@ -252,26 +274,38 @@ function formatImageLink(url) {
 }
 
     async function addRoom() {
-      let n = document.getElementById('rName').value, c = document.getElementById('rCap').value, f = document.getElementById('rFac').value;
-      let i = formatImageLink(document.getElementById('rImg').value); // ดึงและแปลงลิงก์
-      if(!n) return alert('กรุณาใส่ชื่อห้อง');
-      let btn = document.getElementById('btnSaveRoom'); btn.disabled = true; btn.innerHTML = 'กำลังบันทึก...';
-      lastDataHash = "";
-      await apiCall('saveRoom', {name:n, capacity:c, facilities:f, image:i});
-      btn.disabled = false; btn.innerHTML = 'บันทึกห้องใหม่';
-      document.getElementById('rName').value = ""; document.getElementById('rCap').value = ""; document.getElementById('rFac').value = ""; document.getElementById('rImg').value = ""; 
-      refreshAllData();
-    }
+  let n = document.getElementById('rName').value, 
+      c = document.getElementById('rCap').value, 
+      f = document.getElementById('rFac').value,
+      m = parseInt(document.getElementById('rMaxMics').value) || 0, // เพิ่มดึงค่าไมค์
+      i = formatImageLink(document.getElementById('rImg').value);
+      
+  if(!n) return alert('กรุณาใส่ชื่อห้อง');
+  let btn = document.getElementById('btnSaveRoom'); btn.disabled = true; btn.innerHTML = 'กำลังบันทึก...';
+  lastDataHash = "";
+  await apiCall('saveRoom', {name:n, capacity:c, facilities:f, maxMics:m, image:i});
+  btn.disabled = false; btn.innerHTML = 'บันทึกห้องใหม่';
+  document.getElementById('rName').value = ""; 
+  document.getElementById('rCap').value = ""; 
+  document.getElementById('rFac').value = ""; 
+  document.getElementById('rMaxMics').value = ""; 
+  document.getElementById('rImg').value = ""; 
+  refreshAllData();
+}
 
-    async function submitEditRoom() {
-      let n = document.getElementById('rName').value, c = document.getElementById('rCap').value, f = document.getElementById('rFac').value;
-      let i = formatImageLink(document.getElementById('rImg').value); // ดึงและแปลงลิงก์
-      if(!n) return alert('กรุณาใส่ชื่อห้อง');
-      let btn = document.getElementById('btnSaveRoom'); btn.disabled = true; btn.innerHTML = 'กำลังอัปเดต...';
-      lastDataHash = "";
-      await apiCall('updateRoomDetails', {id: editingRoomId, roomData: {name:n, capacity:c, facilities:f, image:i}});
-      btn.disabled = false; cancelEditRoom(); refreshAllData();
-    }
+async function submitEditRoom() {
+  let n = document.getElementById('rName').value, 
+      c = document.getElementById('rCap').value, 
+      f = document.getElementById('rFac').value,
+      m = parseInt(document.getElementById('rMaxMics').value) || 0, // เพิ่มดึงค่าไมค์
+      i = formatImageLink(document.getElementById('rImg').value);
+      
+  if(!n) return alert('กรุณาใส่ชื่อห้อง');
+  let btn = document.getElementById('btnSaveRoom'); btn.disabled = true; btn.innerHTML = 'กำลังอัปเดต...';
+  lastDataHash = "";
+  await apiCall('updateRoomDetails', {id: editingRoomId, roomData: {name:n, capacity:c, facilities:f, maxMics:m, image:i}});
+  btn.disabled = false; cancelEditRoom(); refreshAllData();
+}
     async function delR(id) { if(confirm("ลบห้องนี้?")) { lastDataHash = ""; await apiCall('deleteRoom', {id: id}); refreshAllData(); } }
     async function tglMaint(id, st) { lastDataHash = ""; await apiCall('toggleRoomMaintenance', {id: id, status: st}); refreshAllData(); }
 
